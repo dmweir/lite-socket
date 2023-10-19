@@ -1,0 +1,52 @@
+#include "simple_sockets.h"
+#include <stdint.h>
+
+int main(void) {
+	socket_error_t  err;
+	socket_init();
+	sockfd_t sock = socket_create(TCP);
+
+	if (sock == INVALID_SOCKET) {
+		socket_error_print("socket_create", socket_error());
+		exit(EXIT_FAILURE);
+	}
+
+	err = socket_tcp_nodelay(sock, 1);
+	if (err) {
+		socket_error_print("socket_tcp_nodelay", err);
+		exit(EXIT_FAILURE);
+	}
+
+	int optval = 0;
+	int optlen = sizeof(optval);
+	err = socket_getsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &optval, &optlen);
+	if (err) {
+		socket_error_print("socket_getsockopt", err);
+		exit(EXIT_FAILURE);
+	}
+
+	err = socket_bind(sock, "127.0.0.1", 7111);
+	if (err) {
+		socket_error_print("socket_bind", err);
+		exit(EXIT_FAILURE);
+	}
+
+	socket_name sock_info;
+
+	err = socket_getname(sock, &sock_info);
+	if (err != SOCKET_OK) {
+		socket_error_print("socket_getname", err);
+	}
+	else {
+		printf("%s:%d, tcp_delay=%d\n", sock_info.ipaddr, sock_info.port, optval);
+	}
+
+	err = socket_close(sock);
+	if (err) {
+		socket_error_print("socket_bind", err);
+	}
+
+	socket_cleanup();
+
+	return 0;
+}
