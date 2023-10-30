@@ -1,8 +1,8 @@
 # lite-socket
 
-A library that supports ipv4 tcp/udp sockets on windows and unix.
+A C library that supports ipv4 tcp/udp sockets on windows and unix.
 
-Provides some basic functions for common operations.
+Provides basic functions for common operations and helpers for returning system error messages. 
 
 ## Usage
 
