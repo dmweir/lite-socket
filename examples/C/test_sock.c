@@ -1,4 +1,4 @@
-#include "simple_sockets.h"
+#include "lite_socket.h"
 #include <stdint.h>
 
 int main(void) {
