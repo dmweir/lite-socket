@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "simple_sockets.h"
+#include "lite_socket.h"
 
 
 #ifdef __WINDOWS__
