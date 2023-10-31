@@ -93,9 +93,9 @@ typedef enum {
 }socket_type;
 
 typedef struct {
-	char ipaddr[INET_ADDRSTRLEN + 1];
+	char ip[INET_ADDRSTRLEN + 1];
 	uint16_t port;
-}socket_name;
+}ipaddress_t;
 
 
 /* SOCKET FUNCTIONS */
@@ -106,9 +106,9 @@ LITE_SOCKET_C_API void socket_init(void);
 LITE_SOCKET_C_API void socket_cleanup(void);
 
 LITE_SOCKET_C_API sockfd_t socket_create(socket_type protocol);
-LITE_SOCKET_C_API socket_error_t socket_connect(sockfd_t sock, const char* server_ip, uint16_t port);
-LITE_SOCKET_C_API socket_error_t socket_bind(sockfd_t sockfd, const char* addr, uint16_t port);
-LITE_SOCKET_C_API socket_error_t socket_getname(sockfd_t sock, socket_name* sockname);
+LITE_SOCKET_C_API socket_error_t socket_connect(sockfd_t sock, const ipaddress_t* server_addr);
+LITE_SOCKET_C_API socket_error_t socket_bind(sockfd_t sockfd, const ipaddress_t* addr);
+LITE_SOCKET_C_API socket_error_t socket_getname(sockfd_t sock, ipaddress_t* addr);
 LITE_SOCKET_C_API socket_error_t socket_listen(sockfd_t sockfd, int backlog);
 LITE_SOCKET_C_API sockfd_t socket_accept(sockfd_t sockfd, socket_error_t* error);
 LITE_SOCKET_C_API socket_error_t socket_close(sockfd_t sockfd);

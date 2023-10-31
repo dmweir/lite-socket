@@ -32,12 +32,12 @@ void winsock_init(void) {
 	 		break;
 		case WSAEFAULT:
 			fprintf(stderr, "WSAStartup: The lpWSAData parameter is not a valid pointer.\n");
-			break;
-	}
+		
 
 	if (err != 0) {
 		WSACleanup();
 		exit(EXIT_FAILURE);
+	}	break;
 	}
 
 	// Confirm that winsock DLL supports version 2.2
@@ -147,11 +147,11 @@ sockfd_t socket_create(socket_type protocol) {
 	return sockfd;
 }
 
-socket_error_t socket_connect(sockfd_t sockfd, const char* server_addr, uint16_t port) {
+socket_error_t socket_connect(sockfd_t sockfd, const ipaddress_t* server_addr) {
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
-	inet_pton(AF_INET, server_addr, &server.sin_addr.s_addr);
-	server.sin_port = htons(port);
+	inet_pton(AF_INET, server_addr->ip, &server.sin_addr.s_addr);
+	server.sin_port = htons(server_addr->port);
 
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
 	// linux: https://man7.org/linux/man-pages/man2/connect.2.html
@@ -161,11 +161,11 @@ socket_error_t socket_connect(sockfd_t sockfd, const char* server_addr, uint16_t
 	return SOCKET_OK;
 }
 
-socket_error_t socket_bind(sockfd_t sockfd, const char* addr, uint16_t port) {
+socket_error_t socket_bind(sockfd_t sockfd, const ipaddress_t* addr) {
 	struct sockaddr_in service;
 	service.sin_family = AF_INET;
-	inet_pton(AF_INET, addr, &service.sin_addr.s_addr);
-	service.sin_port = htons(port);
+	inet_pton(AF_INET, addr->ip, &service.sin_addr.s_addr);
+	service.sin_port = htons(addr->port);
 
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
 	// linux: https://man7.org/linux/man-pages/man2/bind.2.html
@@ -204,7 +204,7 @@ sockfd_t socket_accept(sockfd_t sockfd, socket_error_t* error) {
 	return connfd;
 }
 
-socket_error_t socket_getname(sockfd_t sock, socket_name* sockname) {
+socket_error_t socket_getname(sockfd_t sock, ipaddress_t* addr) {
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-getsockname
 	// linux: https://man7.org/linux/man-pages/man2/getsockname.2.html
 	struct sockaddr_in name;
@@ -213,9 +213,9 @@ socket_error_t socket_getname(sockfd_t sock, socket_name* sockname) {
 		return socket_error();
 	}
 
-	sockname->port = ntohs(name.sin_port);
+	addr->port = ntohs(name.sin_port);
 
-	int res = inet_ntop(AF_INET, &(name.sin_addr), &(sockname->ipaddr), sizeof(sockname->ipaddr));
+	int res = inet_ntop(AF_INET, &(name.sin_addr), &(addr->ip), sizeof(addr->ip));
 	if (res == 0) {
 		fprintf(stderr, "Not in presentation format");
 		exit(EXIT_FAILURE);

@@ -44,3 +44,16 @@ else()
 endif()
 set_target_properties(static_lite_socket PROPERTIES ARCHIVE_OUTPUT_DIRECTORY "${LIB}")
 set_target_properties(static_lite_socket PROPERTIES ARCHIVE_OUTPUT_NAME "lite_socket")
+
+# TEST EXAMPLE
+add_executable(lite_socket_test ${PROJECT_SOURCE_DIR}/examples/C/lite_socket_test.c ${SRC}/lite_socket.c)
+
+target_include_directories(lite_socket_test PUBLIC ${INC})
+
+if(MSVC)
+    target_compile_options(lite_socket_test PUBLIC /MT /W4)
+else()
+    target_compile_options(lite_socket_test PUBLIC -Wno-reorder)
+    target_compile_options(lite_socket_test PUBLIC -Wall -Wextra -Wpedantic)
+endif()
+set_target_properties(lite_socket_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${BIN}")

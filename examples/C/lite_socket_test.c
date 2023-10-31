@@ -31,14 +31,14 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	socket_name sock_info;
+	ipaddress_t addr;
 
-	err = socket_getname(sock, &sock_info);
+	err = socket_getname(sock, &addr);
 	if (err != SOCKET_OK) {
 		socket_error_print("socket_getname", err);
 	}
 	else {
-		printf("%s:%d, tcp_delay=%d\n", sock_info.ipaddr, sock_info.port, optval);
+		printf("%s:%d, tcp_delay=%d\n", addr.ip, addr.port, optval);
 	}
 
 	err = socket_close(sock);
