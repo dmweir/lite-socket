@@ -116,12 +116,16 @@ LITE_SOCKET_C_API socket_error_t socket_shutdown(sockfd_t sockfd);
 LITE_SOCKET_C_API int socket_recv(sockfd_t sockfd, void* buf, int len, int flags);
 LITE_SOCKET_C_API int socket_send(sockfd_t sockfd, void* buf, int len, int flags);
 LITE_SOCKET_C_API int socket_sendall(sockfd_t sockfd, void* buf, int len, int flags);
-LITE_SOCKET_C_API int socket_read_ready(sockfd_t sock, double timeout);
-LITE_SOCKET_C_API int socket_write_ready(sockfd_t sock, double timeout);
 LITE_SOCKET_C_API socket_error_t socket_setsockopt(sockfd_t sockfd, int level, int optname, int* optval, socklen_t optlen);
 LITE_SOCKET_C_API socket_error_t socket_getsockopt(sockfd_t sockfd, int level, int optname, int* optval, socklen_t* optlen);
 
 /* HELPER FUNCTIONS */
+LITE_SOCKET_C_API socket_error_t socket_tcp_nodelay(sockfd_t sockfd, int optval);
+LITE_SOCKET_C_API socket_error_t socket_reuseaddr(sockfd_t sockfd, int optval);
+
+LITE_SOCKET_C_API int socket_read_ready(sockfd_t sock, double timeout);
+LITE_SOCKET_C_API int socket_write_ready(sockfd_t sock, double timeout);
+
 LITE_SOCKET_C_API socket_error_t socket_error(void);
 LITE_SOCKET_C_API void socket_error_print(const char* func_name, socket_error_t error_code);
 LITE_SOCKET_C_API void socket_error_msg(socket_error_t error_code, char* msg_buf, int bufsz);
