@@ -25,20 +25,21 @@ int main(void) {
 		exit(EXIT_FAILURE);
 	}
 
-	err = socket_bind(sock, "127.0.0.1", 7111);
+
+	err = socket_bind(sock, &(ipv4_t) { "127.0.0.1", 7111 });
 	if (err) {
 		socket_error_print("socket_bind", err);
 		exit(EXIT_FAILURE);
 	}
 
-	ipaddress_t addr;
+	ipv4_t name;
 
-	err = socket_getname(sock, &addr);
+	err = socket_getname(sock, &name);
 	if (err != SOCKET_OK) {
 		socket_error_print("socket_getname", err);
 	}
 	else {
-		printf("%s:%d, tcp_delay=%d\n", addr.ip, addr.port, optval);
+		printf("%s:%d, tcp_delay=%d\n", name.addr, name.port, optval);
 	}
 
 	err = socket_close(sock);

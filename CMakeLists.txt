@@ -19,7 +19,6 @@ set(LIB "${PROJECT_SOURCE_DIR}/lib")
 # DLL TARGET
 add_library(shared_lite_socket SHARED ${SRC}/lite_socket.c)
 target_include_directories(shared_lite_socket PUBLIC ${INC})
-target_compile_definitions(shared_lite_socket PUBLIC USE_DYNAMIC_LIB)
 target_compile_definitions(shared_lite_socket PUBLIC LITE_SOCKET_C_EXPORTS)
 
 if(MSVC)

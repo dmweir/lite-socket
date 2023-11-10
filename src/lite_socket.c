@@ -3,7 +3,8 @@
 
 
 #ifdef __WINDOWS__
-static double perf_counter_freq;
+#define _CRT_SECURE_NO_WARNINGS 1
+
 static void winsock_init(void);
 static void winsock_cleanup(void);
 
@@ -46,10 +47,6 @@ void winsock_init(void) {
 		WSACleanup();
 		exit(EXIT_FAILURE);
 	}
-
-	LONGLONG freq;
-	QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
-	perf_counter_freq = (double)freq;
 }
 
 //Cleanup winsock
@@ -73,7 +70,7 @@ socket_error_t socket_error(void) {
 }
 
 // Try to get the error message from the system errors.
-void socket_error_msg(socket_error_t error_code, char* msg_buf, int bufsz) {
+void socket_error_detail(socket_error_t error_code, char* msg_buf, int bufsz) {
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-formatmessagea
 	DWORD nchars = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM |
 		FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -87,12 +84,6 @@ void socket_error_msg(socket_error_t error_code, char* msg_buf, int bufsz) {
 	if (nchars == 0) {
 		sprintf_s(msg_buf, bufsz, "No message for Error Code %d found.\n", error_code);
 	}
-}
-
-double get_timestamp(void) {
-	LONGLONG current_time;
-	QueryPerformanceCounter((LARGE_INTEGER*)&current_time);
-	return (double)current_time / perf_counter_freq;
 }
 
 #endif //__WINDOWS__
@@ -118,18 +109,6 @@ void socket_error_msg(socket_error_t error_code, char* msg_buf, int bufsz) {
 	sprintf_s(msg_buf, bufsz, "%s\n", err_msg);
 }
 
-double get_timestamp(void) {
-	struct timeval tim;
-	if (gettimeofday(&tim, NULL) == 0)
-	{
-		double t = tim.tv_sec + (tim.tv_usec / 1000000.0);
-		return t;
-	}
-	else {
-		return 0.0;
-	}
-}
-
 #endif //__UNIX__
 
 /* SOCKET FUNCTIONS */
@@ -147,10 +126,10 @@ sockfd_t socket_create(socket_type protocol) {
 	return sockfd;
 }
 
-socket_error_t socket_connect(sockfd_t sockfd, const ipaddress_t* server_addr) {
+socket_error_t socket_connect(sockfd_t sockfd, const ipv4_t* server_addr) {
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
-	inet_pton(AF_INET, server_addr->ip, &server.sin_addr.s_addr);
+	inet_pton(AF_INET, server_addr->addr, &server.sin_addr.s_addr);
 	server.sin_port = htons(server_addr->port);
 
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
@@ -161,15 +140,15 @@ socket_error_t socket_connect(sockfd_t sockfd, const ipaddress_t* server_addr) {
 	return SOCKET_OK;
 }
 
-socket_error_t socket_bind(sockfd_t sockfd, const ipaddress_t* addr) {
+socket_error_t socket_bind(sockfd_t sockfd, const ipv4_t* addr) {
 	struct sockaddr_in service;
 	service.sin_family = AF_INET;
-	inet_pton(AF_INET, addr->ip, &service.sin_addr.s_addr);
+	inet_pton(AF_INET, addr->addr, &service.sin_addr.s_addr);
 	service.sin_port = htons(addr->port);
 
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
 	// linux: https://man7.org/linux/man-pages/man2/bind.2.html
-	if (bind(sockfd, (struct sock_addr*)&service, sizeof(service)) == SOCKET_ERROR) {
+	if (bind(sockfd, (const struct sockaddr*)&service, sizeof(service)) == SOCKET_ERROR) {
 		int bind_err = socket_error();
 		socket_close(sockfd);
 		return bind_err;
@@ -204,7 +183,7 @@ sockfd_t socket_accept(sockfd_t sockfd, socket_error_t* error) {
 	return connfd;
 }
 
-socket_error_t socket_getname(sockfd_t sock, ipaddress_t* addr) {
+socket_error_t socket_getname(sockfd_t sock, ipv4_t* addr) {
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-getsockname
 	// linux: https://man7.org/linux/man-pages/man2/getsockname.2.html
 	struct sockaddr_in name;
@@ -215,7 +194,7 @@ socket_error_t socket_getname(sockfd_t sock, ipaddress_t* addr) {
 
 	addr->port = ntohs(name.sin_port);
 
-	int res = inet_ntop(AF_INET, &(name.sin_addr), &(addr->ip), sizeof(addr->ip));
+	int res = inet_ntop(AF_INET, &(name.sin_addr), &(addr->addr[0]), sizeof(addr->addr));
 	if (res == 0) {
 		fprintf(stderr, "Not in presentation format");
 		exit(EXIT_FAILURE);
@@ -262,6 +241,11 @@ int socket_recv(sockfd_t sockfd,  void *buf, int len, int flags) {
 int socket_send(sockfd_t sockfd, void *buf, int len, int flags) {
 	// Note: User must check the error code if SOCKET_ERROR is returned.
 	// Returns the number of bytes sent or SOCKET_ERROR
+	// If space is not available at the sending socket to hold the message 
+	// to be transmitted, and the socket file descriptor does not have O_NONBLOCK set,
+	// send() shall block until space is available.
+	// If space is not available at the sending socket to hold the message 
+	// to be transmitted, and the socket file descriptor does have O_NONBLOCK set, send() shall fail.
 	int nbytes = send(sockfd, buf, len, flags);
 	if (nbytes == SOCKET_ERROR)
 		return SOCKET_ERROR;
@@ -323,7 +307,7 @@ void socket_error_print(const char* func_name, socket_error_t error_code) {
 	if (func_name != NULL) {
 		fprintf(stderr, "%s: ", func_name);
 	}
-	socket_error_msg(error_code, err_msg, sizeof(err_msg));
+	socket_error_detail(error_code, err_msg, sizeof(err_msg));
 	fprintf(stderr, "%s", err_msg);
 }
 
@@ -342,8 +326,9 @@ int socket_read_ready(sockfd_t sock, double timeout) {
 	fd_set readfds;
 	FD_ZERO(&readfds);
 	FD_SET(sock, &readfds);
+	int nfds = sock + 1;
 
-	int status = select(FD_SETSIZE, &readfds, NULL, NULL, pWait);
+	int status = select(nfds, &readfds, NULL, NULL, pWait);
 
 	if (status < 0) {
 		return socket_error();
@@ -366,11 +351,36 @@ int socket_write_ready(sockfd_t sock, double timeout) {
 	fd_set writefds;
 	FD_ZERO(&writefds);
 	FD_SET(sock, &writefds);
+	int nfds = sock + 1;
 
-	int status = select(FD_SETSIZE, NULL, &writefds, NULL, pWait);
+	int status = select(nfds, NULL, &writefds, NULL, pWait);
 
 	if (status < 0) {
 		return socket_error();
 	}
 	return status;
+}
+
+socket_error_t socket_set_nonblocking(sockfd_t sock, int value) {
+//Set non-blocking I/O mode if the argument is non-zero
+
+#ifdef __WINDOWS__
+	if (ioctlsocket(sock, FIONBIO, (u_long*)&value) == SOCKET_ERROR) {
+		return socket_error();
+	}
+	return SOCKET_OK;
+#else
+	if (ioctl(sock, FIONBIO, (u_long*)&value) == SOCKET_ERROR) {
+		return socket_error();
+	}
+	return SOCKET_OK;
+#endif
+}
+
+socket_error_t socket_set_recv_timeout(sockfd_t sockfd, int timeout_ms) {
+	return socket_setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
+}
+
+socket_error_t socket_set_send_timeout(sockfd_t sockfd, int timeout_ms) {
+	return socket_setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout_ms, sizeof(timeout_ms));
 }
