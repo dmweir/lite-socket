@@ -18,7 +18,7 @@ int main(void) {
 	}
 
 	int optval = 0;
-	int optlen = sizeof(optval);
+	socklen_t optlen = sizeof(optval);
 	err = socket_getsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &optval, &optlen);
 	if (err) {
 		socket_error_print("socket_getsockopt", err);

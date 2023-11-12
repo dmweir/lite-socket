@@ -82,7 +82,7 @@ void socket_error_detail(socket_error_t error_code, char* msg_buf, int bufsz) {
 		NULL);
 
 	if (nchars == 0) {
-		sprintf_s(msg_buf, bufsz, "No message for Error Code %d found.\n", error_code);
+		snprintf(msg_buf, bufsz, "No message for Error Code %d found.\n", error_code);
 	}
 }
 
@@ -99,14 +99,14 @@ void socket_cleanup(void) {
 
 // Retrieve last error code
 socket_error_t socket_error(void) {
-	return errno
+	return errno;
 }
 
 // Try to get the error message from the system errors.
-void socket_error_msg(socket_error_t error_code, char* msg_buf, int bufsz) {
+void socket_error_detail(socket_error_t error_code, char* msg_buf, int bufsz) {
 	// linux: https://man7.org/linux/man-pages/man3/strerror.3.html
-	char * err_msg = strerror_r(error_code);
-	sprintf_s(msg_buf, bufsz, "%s\n", err_msg);
+	char * err_msg = strerror(error_code);
+	snprintf(msg_buf, bufsz, "%s\n", err_msg);
 }
 
 #endif //__UNIX__
@@ -126,11 +126,14 @@ sockfd_t socket_create(socket_type protocol) {
 	return sockfd;
 }
 
-socket_error_t socket_connect(sockfd_t sockfd, const ipv4_t* server_addr) {
-	struct sockaddr_in server;
+socket_error_t socket_connect(sockfd_t sockfd, ipv4_t* addr) {
+	struct sockaddr_in server = { 0 };
 	server.sin_family = AF_INET;
-	inet_pton(AF_INET, server_addr->addr, &server.sin_addr.s_addr);
-	server.sin_port = htons(server_addr->port);
+	int res  = inet_pton(AF_INET, &(addr->addr[0]), &(server.sin_addr));
+	if (res == SOCKET_ERROR) {
+		return socket_error();
+	}
+	server.sin_port = htons(addr->port);
 
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-connect
 	// linux: https://man7.org/linux/man-pages/man2/connect.2.html
@@ -140,10 +143,14 @@ socket_error_t socket_connect(sockfd_t sockfd, const ipv4_t* server_addr) {
 	return SOCKET_OK;
 }
 
-socket_error_t socket_bind(sockfd_t sockfd, const ipv4_t* addr) {
-	struct sockaddr_in service;
+socket_error_t socket_bind(sockfd_t sockfd, ipv4_t* addr) {
+	struct sockaddr_in service = { 0 };
 	service.sin_family = AF_INET;
-	inet_pton(AF_INET, addr->addr, &service.sin_addr.s_addr);
+
+	int res  = inet_pton(AF_INET, &(addr->addr[0]), &(service.sin_addr));
+	if (res == SOCKET_ERROR) {
+		return socket_error();
+	}
 	service.sin_port = htons(addr->port);
 
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-bind
@@ -186,7 +193,7 @@ sockfd_t socket_accept(sockfd_t sockfd, socket_error_t* error) {
 socket_error_t socket_getname(sockfd_t sock, ipv4_t* addr) {
 	// windows: https://learn.microsoft.com/en-us/windows/win32/api/winsock2/nf-winsock2-getsockname
 	// linux: https://man7.org/linux/man-pages/man2/getsockname.2.html
-	struct sockaddr_in name;
+	struct sockaddr_in name = { 0 };
 	socklen_t namelen = sizeof(name);
 	if (getsockname(sock, (struct sockaddr*)&name,  &namelen) == SOCKET_ERROR) {
 		return socket_error();
@@ -194,12 +201,8 @@ socket_error_t socket_getname(sockfd_t sock, ipv4_t* addr) {
 
 	addr->port = ntohs(name.sin_port);
 
-	int res = inet_ntop(AF_INET, &(name.sin_addr), &(addr->addr[0]), sizeof(addr->addr));
-	if (res == 0) {
-		fprintf(stderr, "Not in presentation format");
-		exit(EXIT_FAILURE);
-	}
-	else if (res < 0) {
+	const char *res = inet_ntop(AF_INET, &(name.sin_addr), &(addr->addr[0]), sizeof(addr->addr));
+	if (res == NULL) {
 		return socket_error();
 	}
 

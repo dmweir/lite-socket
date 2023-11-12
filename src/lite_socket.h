@@ -4,7 +4,9 @@
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__WINDOWS__)
 	#define __WINDOWS__
 #else
-	#define __UNIX__
+	#ifndef __UNIX__
+		#define __UNIX__
+	#endif
 #endif
 
 #include <stdio.h>
@@ -47,6 +49,7 @@ typedef int socklen_t;
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <arpa/inet.h>
 
 #define INVALID_SOCKET (-1)
 #define SOCKET_ERROR (-1)
@@ -98,8 +101,8 @@ LITE_SOCKET_C_API void socket_init(void);
 LITE_SOCKET_C_API void socket_cleanup(void);
 
 LITE_SOCKET_C_API sockfd_t socket_create(socket_type protocol);
-LITE_SOCKET_C_API socket_error_t socket_connect(sockfd_t sock, const ipv4_t* server_addr);
-LITE_SOCKET_C_API socket_error_t socket_bind(sockfd_t sockfd, const ipv4_t* addr);
+LITE_SOCKET_C_API socket_error_t socket_connect(sockfd_t sock, ipv4_t* server_addr);
+LITE_SOCKET_C_API socket_error_t socket_bind(sockfd_t sockfd, ipv4_t* addr);
 LITE_SOCKET_C_API socket_error_t socket_getname(sockfd_t sock, ipv4_t* addr);
 LITE_SOCKET_C_API socket_error_t socket_listen(sockfd_t sockfd, int backlog);
 LITE_SOCKET_C_API sockfd_t socket_accept(sockfd_t sockfd, socket_error_t* error);
@@ -121,8 +124,8 @@ LITE_SOCKET_C_API int socket_read_ready(sockfd_t sock, double timeout);
 LITE_SOCKET_C_API int socket_write_ready(sockfd_t sock, double timeout);
 
 LITE_SOCKET_C_API socket_error_t socket_error(void);
-LITE_SOCKET_C_API void socket_error_print(const char* func_name, socket_error_t error_code);
 LITE_SOCKET_C_API void socket_error_detail(socket_error_t error_code, char* msg_buf, int bufsz);
+LITE_SOCKET_C_API void socket_error_print(const char* func_name, socket_error_t error_code);
 
 #ifdef __cplusplus
 }
